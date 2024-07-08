@@ -21,6 +21,18 @@ public class MedicalVRAgent : Agent
     public StoneArea stoneArea;
     public Stone stone;
 
+    [Header("Target")]
+    public Transform targetTransform;
+    public float placementThreshold = 0.1f;
+
+    private Vector3 initialHeadPosition;
+    private Quaternion initialHeadRotation;
+    private Vector3 initialLeftHandPosition;
+    private Quaternion initialLeftHandRotation;
+    private Vector3 initialRightHandPosition;
+    private Quaternion initialRightHandRotation;
+    private Vector3 initialStonePosition;
+
     private void OnEnable()
     {
         leftHandPositionAction.Enable();
@@ -40,6 +52,16 @@ public class MedicalVRAgent : Agent
     public override void Initialize()
     {
         base.Initialize();
+
+        // Store initial positions and rotations
+        initialHeadPosition = headTransform.localPosition;
+        initialHeadRotation = headTransform.localRotation;
+        initialLeftHandPosition = leftHandTransform.localPosition;
+        initialLeftHandRotation = leftHandTransform.localRotation;
+        initialRightHandPosition = rightHandTransform.localPosition;
+        initialRightHandRotation = rightHandTransform.localRotation;
+        initialStonePosition = stone.transform.localPosition;
+
         if (stoneArea == null)
         {
             Debug.LogError("Stone Area not assigned!");
@@ -47,6 +69,28 @@ public class MedicalVRAgent : Agent
         if (stone == null)
         {
             Debug.LogError("Stone not assigned!");
+        }
+        if (targetTransform == null)
+        {
+            Debug.LogError("Target Transform not assigned!");
+        }
+    }
+
+    public override void OnEpisodeBegin()
+    {
+        // Reset all relevant transforms to their initial positions and rotations
+        headTransform.localPosition = initialHeadPosition;
+        headTransform.localRotation = initialHeadRotation;
+        leftHandTransform.localPosition = initialLeftHandPosition;
+        leftHandTransform.localRotation = initialLeftHandRotation;
+        rightHandTransform.localPosition = initialRightHandPosition;
+        rightHandTransform.localRotation = initialRightHandRotation;
+        stone.transform.localPosition = initialStonePosition;
+
+        // Reset stone area and any other environment-specific resets
+        if (stoneArea != null)
+        {
+            stoneArea.ResetStone();
         }
     }
 
@@ -64,12 +108,14 @@ public class MedicalVRAgent : Agent
 
         // Collect observation for the stone's position
         sensor.AddObservation(stone.transform.localPosition);
+
+        // Collect observation for the target's position
+        sensor.AddObservation(targetTransform.localPosition);
     }
 
     public override void OnActionReceived(ActionBuffers actions)
     {
         // Apply actions to VR hands (if needed for your training logic)
-        // Example: Control hand positions or triggers based on actions
         float leftHandX = actions.ContinuousActions[0];
         float leftHandY = actions.ContinuousActions[1];
         float leftHandZ = actions.ContinuousActions[2];
@@ -91,9 +137,14 @@ public class MedicalVRAgent : Agent
 
         rightHandTransform.localPosition = new Vector3(rightHandX, rightHandY, rightHandZ);
         rightHandTransform.localRotation = new Quaternion(rightHandRotX, rightHandRotY, rightHandRotZ, rightHandRotW);
-        
-        // Implement logic to detect and remove the stone
-        if (IsStoneRemoved())
+
+        // Check if the stone is placed on the target game object
+        if (IsStonePlacedOnTarget())
+        {
+            AddReward(1.0f);
+            EndEpisode();
+        }
+        else if (IsStoneRemoved())
         {
             AddReward(1.0f); // Positive reward for removing the stone
             EndEpisode();
@@ -125,20 +176,38 @@ public class MedicalVRAgent : Agent
 
     private bool IsStoneRemoved()
     {
-    // Define the logic to check if the stone has been removed
-    // Example: Check the distance between the hand and the stone
+        // Define the logic to check if the stone has been removed
         float distanceToStone = Vector3.Distance(leftHandTransform.position, stone.transform.position);
         if (distanceToStone < 0.1f) // Adjust the threshold as needed
         {
-            // Remove all deformity from the stone
-            float removedAmount = stone.RemoveDeformity(1f);
-            
-            // Check if the stone has been fully removed
-            if (!stone.HasDeformity)
-            {
-                return true;
-            }
+            // Logic for stone removal (if needed)
+            return true;
         }
         return false;
+    }
+
+    private bool IsStonePlacedOnTarget()
+    {
+        // Ensure both the stone and target are set
+        if (stone == null || targetTransform == null)
+        {
+            return false;
+        }
+
+        // Calculate the distance between the stone and the target
+        float distanceToTarget = Vector3.Distance(stone.transform.position, targetTransform.position);
+
+        // Check if the stone is within the placement threshold
+        return distanceToTarget < placementThreshold;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        // Check if the stone collides with the target
+        if (other.gameObject == targetTransform.gameObject)
+        {
+            AddReward(1.0f); // Reward for placing the stone on the target
+            EndEpisode();
+        }
     }
 }

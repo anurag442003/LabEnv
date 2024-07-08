@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -26,7 +24,8 @@ public class StoneArea : MonoBehaviour
     /// <returns>The matching stone</returns>
     public Stone GetStoneFromCollider(Collider collider)
     {
-        return stone.stoneCollider == collider ? stone : null;
+        // Check if the collider belongs to the stone
+        return stone != null && stone.stoneCollider == collider ? stone : null;
     }
 
     /// <summary>
@@ -41,4 +40,3 @@ public class StoneArea : MonoBehaviour
         }
     }
 }
-

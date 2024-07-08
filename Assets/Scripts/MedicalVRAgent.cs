@@ -23,7 +23,7 @@ public class MedicalVRAgent : Agent
 
     [Header("Target")]
     public Transform targetTransform;
-    public float placementThreshold = 0.1f;
+    public float placementThreshold = 0.01f;
 
     private Vector3 initialHeadPosition;
     private Quaternion initialHeadRotation;
@@ -141,12 +141,8 @@ public class MedicalVRAgent : Agent
         // Check if the stone is placed on the target game object
         if (IsStonePlacedOnTarget())
         {
+            Debug.Log("Stone placed on the target.");
             AddReward(1.0f);
-            EndEpisode();
-        }
-        else if (IsStoneRemoved())
-        {
-            AddReward(1.0f); // Positive reward for removing the stone
             EndEpisode();
         }
     }
@@ -174,18 +170,6 @@ public class MedicalVRAgent : Agent
         continuousActions[13] = rightHandRotationAction.ReadValue<Quaternion>().w;
     }
 
-    private bool IsStoneRemoved()
-    {
-        // Define the logic to check if the stone has been removed
-        float distanceToStone = Vector3.Distance(leftHandTransform.position, stone.transform.position);
-        if (distanceToStone < 0.1f) // Adjust the threshold as needed
-        {
-            // Logic for stone removal (if needed)
-            return true;
-        }
-        return false;
-    }
-
     private bool IsStonePlacedOnTarget()
     {
         // Ensure both the stone and target are set
@@ -198,16 +182,8 @@ public class MedicalVRAgent : Agent
         float distanceToTarget = Vector3.Distance(stone.transform.position, targetTransform.position);
 
         // Check if the stone is within the placement threshold
-        return distanceToTarget < placementThreshold;
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        // Check if the stone collides with the target
-        if (other.gameObject == targetTransform.gameObject)
-        {
-            AddReward(1.0f); // Reward for placing the stone on the target
-            EndEpisode();
-        }
+        bool isPlaced = distanceToTarget < placementThreshold;
+        Debug.Log($"Distance to target: {distanceToTarget}, Is placed: {isPlaced}");
+        return isPlaced;
     }
 }

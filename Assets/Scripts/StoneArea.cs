@@ -13,8 +13,14 @@ public class StoneArea : MonoBehaviour
     /// </summary>
     public void ResetStone()
     {
-        // Reset the stone
-        stone.ResetStone();
+        if (stone != null)
+        {
+            stone.ResetStone();
+        }
+        else
+        {
+            Debug.LogError("Stone not set in StoneArea");
+        }
     }
 
     /// <summary>
@@ -25,7 +31,7 @@ public class StoneArea : MonoBehaviour
     public Stone GetStoneFromCollider(Collider collider)
     {
         // Check if the collider belongs to the stone
-        return stone != null && stone.stoneCollider == collider ? stone : null;
+        return stone != null && stone.triggerCollider == collider ? stone : null;
     }
 
     /// <summary>

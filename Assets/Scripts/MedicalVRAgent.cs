@@ -23,7 +23,7 @@ public class MedicalVRAgent : Agent
 
     [Header("Target")]
     public Transform targetTransform;
-    public float placementThreshold = 0.01f;
+    public float placementThreshold = 0.035f;
 
     public Vector3 InitialStonePosition { get; private set; }
 
@@ -33,6 +33,12 @@ public class MedicalVRAgent : Agent
     private Quaternion initialLeftHandRotation;
     private Vector3 initialRightHandPosition;
     private Quaternion initialRightHandRotation;
+
+    private bool isStoneStable = false;
+    private float stableTimer = 0f;
+    private const float STABLE_TIME = 0.5f; // Time the stone needs to be stable
+    private bool isEpisodeEnding = false;
+    private bool isStationEnding = false;
 
     private void OnEnable()
     {
@@ -77,8 +83,23 @@ public class MedicalVRAgent : Agent
         }
     }
 
+    private void Update()
+    {
+        if (!isEpisodeEnding && IsStonePlacedOnTarget())
+        {
+            Debug.Log("Stone placed on target. Ending episode.");
+            isEpisodeEnding = true;
+            AddReward(1.0f);
+            EndEpisode();
+        }
+    }
+
+
     public override void OnEpisodeBegin()
     {
+        base.OnEpisodeBegin();
+        isEpisodeEnding = false;
+
         // Reset all relevant transforms to their initial positions and rotations
         headTransform.localPosition = initialHeadPosition;
         headTransform.localRotation = initialHeadRotation;
@@ -86,21 +107,36 @@ public class MedicalVRAgent : Agent
         leftHandTransform.localRotation = initialLeftHandRotation;
         rightHandTransform.localPosition = initialRightHandPosition;
         rightHandTransform.localRotation = initialRightHandRotation;
-        stone.transform.localPosition = InitialStonePosition;
 
-        // Reset the stone's Rigidbody to ensure it doesn't retain any unwanted velocities
-        Rigidbody stoneRigidbody = stone.GetComponent<Rigidbody>();
-        if (stoneRigidbody != null)
-        {
-            stoneRigidbody.velocity = Vector3.zero;
-            stoneRigidbody.angularVelocity = Vector3.zero;
-        }
-
-        // Reset stone area and any other environment-specific resets
+        // Reset the stone
         if (stoneArea != null)
         {
             stoneArea.ResetStone();
         }
+        else
+        {
+            Debug.LogError("StoneArea is not assigned in MedicalVRAgent!");
+        }
+
+        Debug.Log("Episode begun. Scene reset.");
+    }
+
+    private bool IsStonePlacedOnTarget()
+    {
+        if (stone == null || targetTransform == null)
+        {
+            return false;
+        }
+
+        float distanceToTarget = Vector3.Distance(stone.transform.position, targetTransform.position);
+        bool isPlaced = distanceToTarget < placementThreshold;
+
+        if (isPlaced)
+        {
+            Debug.Log($"Stone placed on target. Distance: {distanceToTarget}");
+        }
+
+        return isPlaced;
     }
 
     public override void CollectObservations(VectorSensor sensor)
@@ -179,20 +215,5 @@ public class MedicalVRAgent : Agent
         continuousActions[13] = rightHandRotationAction.ReadValue<Quaternion>().w;
     }
 
-    private bool IsStonePlacedOnTarget()
-    {
-        // Ensure both the stone and target are set
-        if (stone == null || targetTransform == null)
-        {
-            return false;
-        }
-
-        // Calculate the distance between the stone and the target
-        float distanceToTarget = Vector3.Distance(stone.transform.position, targetTransform.position);
-
-        // Check if the stone is within the placement threshold
-        bool isPlaced = distanceToTarget < placementThreshold;
-        Debug.Log($"Distance to target: {distanceToTarget}, Is placed: {isPlaced}");
-        return isPlaced;
-    }
+    
 }

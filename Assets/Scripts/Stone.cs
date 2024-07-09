@@ -1,61 +1,51 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Manages a single stone on the body
-/// </summary>
 public class Stone : MonoBehaviour
 {
-    // The trigger collider representing the stone
-    [HideInInspector]
-    public Collider stoneCollider;
-
-    // The solid collider representing the stone
-    private Collider bodyCollider;
-
-    // Reference to the agent managing the stone and its environment
+    public Collider triggerCollider;
+    private Rigidbody rb;
     private MedicalVRAgent agent;
+    private Vector3 initialPosition;
+    private Quaternion initialRotation;
 
-    /// <summary>
-    /// Sets up the stone with its colliders and finds the agent reference
-    /// </summary>
     private void Awake()
     {
-        // Find stone and body colliders
-        bodyCollider = transform.Find("BodyCollider").GetComponent<Collider>();
-        stoneCollider = transform.Find("StoneCollider").GetComponent<Collider>();
+        rb = GetComponent<Rigidbody>();
+        initialPosition = transform.position;
+        initialRotation = transform.rotation;
 
-        // Find the agent managing this stone
+        // Find the MedicalVRAgent in the scene
         agent = FindObjectOfType<MedicalVRAgent>();
         if (agent == null)
         {
-            Debug.LogError("No MedicalVRAgent found in the scene!");
+            Debug.LogError("MedicalVRAgent not found in the scene!");
         }
     }
 
-    /// <summary>
-    /// Resets the stone's state
-    /// </summary>
     public void ResetStone()
     {
-        // Enable the stone and collider
-        bodyCollider.gameObject.SetActive(true);
-        stoneCollider.gameObject.SetActive(true);
-        transform.localPosition = agent.InitialStonePosition;
+        transform.position = initialPosition;
+        transform.rotation = initialRotation;
+        if (rb != null)
+        {
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+        Debug.Log("Stone reset to initial position.");
     }
 
-    /// <summary>
-    /// Handles collision events with the stone
-    /// </summary>
-    /// <param name="other">The collider that entered into trigger</param>
     private void OnTriggerEnter(Collider other)
     {
-        // Check if the stone collides with the target managed by the agent
-        if (other.gameObject == agent.targetTransform.gameObject)
+        if (agent == null)
+        {
+            Debug.LogError("MedicalVRAgent is not set!");
+            return;
+        }
+
+        if (agent.targetTransform != null && other.gameObject == agent.targetTransform.gameObject)
         {
             Debug.Log("Stone placed on the target.");
-            agent.AddReward(1.0f); // Reward for placing the stone on the target
+            agent.AddReward(1.0f);
             agent.EndEpisode();
         }
     }

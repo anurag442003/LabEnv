@@ -42,6 +42,7 @@ public class Stone : MonoBehaviour
         // Enable the stone and collider
         bodyCollider.gameObject.SetActive(true);
         stoneCollider.gameObject.SetActive(true);
+        transform.localPosition = agent.InitialStonePosition;
     }
 
     /// <summary>

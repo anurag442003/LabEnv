@@ -25,13 +25,14 @@ public class MedicalVRAgent : Agent
     public Transform targetTransform;
     public float placementThreshold = 0.01f;
 
+    public Vector3 InitialStonePosition { get; private set; }
+
     private Vector3 initialHeadPosition;
     private Quaternion initialHeadRotation;
     private Vector3 initialLeftHandPosition;
     private Quaternion initialLeftHandRotation;
     private Vector3 initialRightHandPosition;
     private Quaternion initialRightHandRotation;
-    private Vector3 initialStonePosition;
 
     private void OnEnable()
     {
@@ -60,7 +61,7 @@ public class MedicalVRAgent : Agent
         initialLeftHandRotation = leftHandTransform.localRotation;
         initialRightHandPosition = rightHandTransform.localPosition;
         initialRightHandRotation = rightHandTransform.localRotation;
-        initialStonePosition = stone.transform.localPosition;
+        InitialStonePosition = stone.transform.localPosition;
 
         if (stoneArea == null)
         {
@@ -85,7 +86,15 @@ public class MedicalVRAgent : Agent
         leftHandTransform.localRotation = initialLeftHandRotation;
         rightHandTransform.localPosition = initialRightHandPosition;
         rightHandTransform.localRotation = initialRightHandRotation;
-        stone.transform.localPosition = initialStonePosition;
+        stone.transform.localPosition = InitialStonePosition;
+
+        // Reset the stone's Rigidbody to ensure it doesn't retain any unwanted velocities
+        Rigidbody stoneRigidbody = stone.GetComponent<Rigidbody>();
+        if (stoneRigidbody != null)
+        {
+            stoneRigidbody.velocity = Vector3.zero;
+            stoneRigidbody.angularVelocity = Vector3.zero;
+        }
 
         // Reset stone area and any other environment-specific resets
         if (stoneArea != null)

@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// Manages the stone on the body
+/// Manages the stone in the stone area
 /// </summary>
 public class StoneArea : MonoBehaviour
 {

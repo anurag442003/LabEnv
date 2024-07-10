@@ -3,6 +3,7 @@ using Unity.MLAgents;
 using Unity.MLAgents.Sensors;
 using Unity.MLAgents.Actuators;
 using UnityEngine.InputSystem;
+using Unity.MLAgents.Demonstrations;
 
 public class MedicalVRAgent : Agent
 {
@@ -40,6 +41,12 @@ public class MedicalVRAgent : Agent
     private bool isEpisodeEnding = false;
     private bool isStationEnding = false;
 
+    private DemonstrationRecorder demoRecorder;
+
+    private int episodeCount = 0;
+
+    [SerializeField] private bool isTraining = false;
+
     private void OnEnable()
     {
         leftHandPositionAction.Enable();
@@ -59,6 +66,12 @@ public class MedicalVRAgent : Agent
     public override void Initialize()
     {
         base.Initialize();
+
+        demoRecorder = GetComponent<DemonstrationRecorder>();
+        if (demoRecorder == null)
+        {
+            Debug.LogError("DemonstrationRecorder not found on the agent!");
+        }
 
         // Store initial positions and rotations
         initialHeadPosition = headTransform.localPosition;
@@ -98,7 +111,8 @@ public class MedicalVRAgent : Agent
     public override void OnEpisodeBegin()
     {
         base.OnEpisodeBegin();
-        isEpisodeEnding = false;
+        episodeCount++;
+        Debug.Log($"Episode {episodeCount} beginning");
 
         // Reset all relevant transforms to their initial positions and rotations
         headTransform.localPosition = initialHeadPosition;
@@ -119,6 +133,11 @@ public class MedicalVRAgent : Agent
         }
 
         Debug.Log("Episode begun. Scene reset.");
+    }
+
+    public int GetCurrentEpisode()
+    {
+        return episodeCount;
     }
 
     private bool IsStonePlacedOnTarget()
@@ -160,6 +179,8 @@ public class MedicalVRAgent : Agent
 
     public override void OnActionReceived(ActionBuffers actions)
     {
+        var continuousActions = actions.ContinuousActions;
+
         // Apply actions to VR hands (if needed for your training logic)
         float leftHandX = actions.ContinuousActions[0];
         float leftHandY = actions.ContinuousActions[1];
@@ -194,26 +215,26 @@ public class MedicalVRAgent : Agent
 
     public override void Heuristic(in ActionBuffers actionsOut)
     {
-        var continuousActions = actionsOut.ContinuousActions;
-        // Use VR controller inputs as heuristic for training
-        continuousActions[0] = leftHandPositionAction.ReadValue<Vector3>().x;
-        continuousActions[1] = leftHandPositionAction.ReadValue<Vector3>().y;
-        continuousActions[2] = leftHandPositionAction.ReadValue<Vector3>().z;
-
-        continuousActions[3] = leftHandRotationAction.ReadValue<Quaternion>().x;
-        continuousActions[4] = leftHandRotationAction.ReadValue<Quaternion>().y;
-        continuousActions[5] = leftHandRotationAction.ReadValue<Quaternion>().z;
-        continuousActions[6] = leftHandRotationAction.ReadValue<Quaternion>().w;
-
-        continuousActions[7] = rightHandPositionAction.ReadValue<Vector3>().x;
-        continuousActions[8] = rightHandPositionAction.ReadValue<Vector3>().y;
-        continuousActions[9] = rightHandPositionAction.ReadValue<Vector3>().z;
-
-        continuousActions[10] = rightHandRotationAction.ReadValue<Quaternion>().x;
-        continuousActions[11] = rightHandRotationAction.ReadValue<Quaternion>().y;
-        continuousActions[12] = rightHandRotationAction.ReadValue<Quaternion>().z;
-        continuousActions[13] = rightHandRotationAction.ReadValue<Quaternion>().w;
+        if (!isTraining)
+        {
+            var continuousActions = actionsOut.ContinuousActions;
+            // Use VR controller inputs as heuristic for manual control
+            continuousActions[0] = leftHandPositionAction.ReadValue<Vector3>().x;
+            continuousActions[1] = leftHandPositionAction.ReadValue<Vector3>().y;
+            continuousActions[2] = leftHandPositionAction.ReadValue<Vector3>().z;
+            continuousActions[3] = leftHandRotationAction.ReadValue<Quaternion>().x;
+            continuousActions[4] = leftHandRotationAction.ReadValue<Quaternion>().y;
+            continuousActions[5] = leftHandRotationAction.ReadValue<Quaternion>().z;
+            continuousActions[6] = leftHandRotationAction.ReadValue<Quaternion>().w;
+            continuousActions[7] = rightHandPositionAction.ReadValue<Vector3>().x;
+            continuousActions[8] = rightHandPositionAction.ReadValue<Vector3>().y;
+            continuousActions[9] = rightHandPositionAction.ReadValue<Vector3>().z;
+            continuousActions[10] = rightHandRotationAction.ReadValue<Quaternion>().x;
+            continuousActions[11] = rightHandRotationAction.ReadValue<Quaternion>().y;
+            continuousActions[12] = rightHandRotationAction.ReadValue<Quaternion>().z;
+            continuousActions[13] = rightHandRotationAction.ReadValue<Quaternion>().w;
+        }
     }
 
-    
+
 }

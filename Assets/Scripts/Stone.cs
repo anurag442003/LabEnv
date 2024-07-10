@@ -11,6 +11,10 @@ public class Stone : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.isKinematic = false;  // Ensure it's not kinematic
+        }
         initialPosition = transform.position;
         initialRotation = transform.rotation;
 
@@ -36,15 +40,9 @@ public class Stone : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (agent == null)
+        if (agent != null && agent.targetTransform != null && other.gameObject == agent.targetTransform.gameObject)
         {
-            Debug.LogError("MedicalVRAgent is not set!");
-            return;
-        }
-
-        if (agent.targetTransform != null && other.gameObject == agent.targetTransform.gameObject)
-        {
-            Debug.Log("Stone placed on the target.");
+            Debug.Log($"Stone placed on target in episode {agent.GetCurrentEpisode()}. Attempting to record demonstration.");
             agent.AddReward(1.0f);
             agent.EndEpisode();
         }
